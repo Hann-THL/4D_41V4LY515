@@ -1,1 +1,3 @@
 resources/output/
+**/.ipynb_checkpoints/
+**/*.pyc
