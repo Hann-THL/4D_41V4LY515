@@ -74,10 +74,11 @@ def generate_plot(fig, out_path=None, out_filename=None, to_image=False):
 
 def plot_subplots(data, max_col, title,
                   out_path=None, to_image=False,
-                  layout_kwargs={}, xaxis_titles=[], yaxis_titles=[], subplot_titles=None):
+                  layout_kwargs={}, xaxis_titles=[], yaxis_titles=[],
+                  subplot_kwargs={}):
 
     max_row = int(np.ceil(len(data) / max_col))
-    fig     = make_subplots(rows=max_row, cols=max_col, subplot_titles=subplot_titles)
+    fig     = make_subplots(rows=max_row, cols=max_col, **subplot_kwargs)
     
     for index, trace in enumerate(data):
         col = index +1
@@ -113,10 +114,11 @@ def plot_subplots(data, max_col, title,
 
 def datagroups_subplots(data_groups, max_col, title,
                         out_path=None, to_image=False,
-                        layout_kwargs={}, xaxis_titles=[], yaxis_titles=[], subplot_titles=None):
+                        layout_kwargs={}, xaxis_titles=[], yaxis_titles=[],
+                        subplot_kwargs={}):
 
     max_row = int(np.ceil(len(data_groups) / max_col))
-    fig     = make_subplots(rows=max_row, cols=max_col, subplot_titles=subplot_titles)
+    fig     = make_subplots(rows=max_row, cols=max_col, **subplot_kwargs)
 
     for index, data in enumerate(data_groups):
         col = index +1
@@ -281,34 +283,35 @@ def box_categorical(df, y, title='Box',
                         yaxis_titles=[y if i % max_col == 0 else None for i,_ in enumerate(columns)],
                         layout_kwargs=layout_kwargs, to_image=to_image)
 
-def bar_mean_median(df, y, title='Bar - Mean-Median',
-                    out_path=None, max_col=2, layout_kwargs={}, to_image=False):
+def meandist(df, y, title='Mean Distribution',
+             out_path=None, max_col=2, layout_kwargs={}, to_image=False):
 
     columns = df.select_dtypes(include='object')
     columns = [x for x in columns if x != y]
 
-    data_groups  = []
-    stats        = ['mean', 'median']
-    mean, median = df[y].mean(), df[y].median()
-    colors       = DEFAULT_PLOTLY_COLORS
+    data_groups = []
+    stats       = ['mean', 'count']
+    mean        = df[y].mean()
+    colors      = DEFAULT_PLOTLY_COLORS
 
     for column in columns:
         stat_df = df.groupby(column).agg(
             mean=(y, 'mean'),
-            median=(y, 'median')
+            count=(y, 'count')
         ).reset_index()
+        stat_df.sort_values(by='mean', inplace=True)
 
         for stat in stats:
             data = []
             data.append(go.Bar(
-                x=stat_df.sort_values(by=stat)[column],
-                y=stat_df.sort_values(by=stat)[stat],
+                x=stat_df[column],
+                y=stat_df[stat],
                 showlegend=False,
                 marker={'color': colors[0]}
             ))
             data.append(go.Scattergl(
-                x=stat_df.sort_values(by=stat)[column],
-                y=[mean if stat == 'mean' else median for x in range(len(stat_df))],
+                x=stat_df[column],
+                y=[mean if stat == 'mean' else None for x in range(len(stat_df))],
                 showlegend=False,
                 marker={'color': 'red'},
                 mode='lines',
@@ -352,7 +355,7 @@ def prob(df, title='Probability',
     datagroups_subplots(data_groups, max_col=max_col, title=title, out_path=out_path,
                         xaxis_titles=['Theoretical Quantiles' for _ in columns],
                         yaxis_titles=['Ordered Values' if i % max_col == 0 else None for i,_ in enumerate(columns)],
-                        subplot_titles=list(columns),
+                        subplot_kwargs={'subplot_titles': list(columns)},
                         layout_kwargs=layout_kwargs, to_image=to_image)
 
 def line(df, xy_tuples, title='Line',
@@ -415,7 +418,7 @@ def scatter(df, xy_tuples, title='Scatter', color=None,
     datagroups_subplots(data_groups, max_col=max_col, title=title, out_path=out_path,
                         xaxis_titles=[xy[0] for xy in xy_tuples],
                         yaxis_titles=[xy[1] for xy in xy_tuples],
-                        subplot_titles=subplot_titles,
+                        subplot_kwargs={'subplot_titles': subplot_titles},
                         layout_kwargs=layout_kwargs, to_image=to_image)
 
 def pair(df, title='Pair', color=None,
@@ -535,7 +538,7 @@ def wave(df, amplitude, title='Wave',
     yaxis_titles = ['Amplitude' if i % max_col == 0 else '' for i,_ in enumerate(new_df.index)]
 
     datagroups_subplots(data_groups, max_col=max_col, title=title, out_path=out_path,
-                        subplot_titles=new_df.index,
+                        subplot_kwargs={'subplot_titles': new_df.index},
                         xaxis_titles=xaxis_titles,
                         yaxis_titles=yaxis_titles,
                         layout_kwargs=layout_kwargs, to_image=to_image)
@@ -563,7 +566,7 @@ def fourier(df, frequency, magnitude, title='FT', x_title='Frequency',
     yaxis_titles = ['Magnitude' if i % max_col == 0 else '' for i,_ in enumerate(new_df.index)]
 
     datagroups_subplots(data_groups, max_col=max_col, title=title, out_path=out_path,
-                        subplot_titles=new_df.index,
+                        subplot_kwargs={'subplot_titles': new_df.index},
                         xaxis_titles=xaxis_titles,
                         yaxis_titles=yaxis_titles,
                         layout_kwargs=layout_kwargs, to_image=to_image)
@@ -588,7 +591,7 @@ def spectogram(df, z, title='Spectogram', y_title='Frequency',
     yaxis_titles = [y_title if i % max_col == 0 else '' for i,_ in enumerate(new_df.index)]
 
     datagroups_subplots(data_groups, max_col=max_col, title=title, out_path=out_path,
-                        subplot_titles=new_df.index,
+                        subplot_kwargs={'subplot_titles': new_df.index},
                         xaxis_titles=xaxis_titles,
                         yaxis_titles=yaxis_titles,
                         layout_kwargs=layout_kwargs, to_image=to_image)
